@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>SRT Train Live</title>
+<title>SRT Train Live Tracking</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -18,24 +18,32 @@
 
 <script>
 
+// ====== ตั้งค่า ThingSpeak ======
 const channelID = 3195220;
 const readAPI = "KA3TZR7BO86GX3BP";
 
-var map = L.map('map').setView([13.7367, 100.5231], 13);
+// ====== สร้างแผนที่เริ่มต้น (กรุงเทพ) ======
+var map = L.map('map').setView([13.7367, 100.5231], 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
+  maxZoom: 19,
 }).addTo(map);
 
-// ✅ ใช้ไอคอนจาก GitHub CDN (เสถียรกว่า)
-var trainIcon = L.icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  iconSize: [35, 55],
-  iconAnchor: [17, 55]
+// ====== ไอคอนรถไฟแบบ SVG ======
+var trainIcon = L.divIcon({
+  html: `
+  <svg width="50" height="50" viewBox="0 0 24 24" fill="red">
+    <path d="M12 2C8 2 6 3 6 6V13C6 15 7 16 8 17L6 19V20H18V19L16 17C17 16 18 15 18 13V6C18 3 16 2 12 2ZM8 6H16V10H8V6ZM9 14C8.45 14 8 13.55 8 13C8 12.45 8.45 12 9 12C9.55 12 10 12.45 10 13C10 13.55 9.55 14 9 14ZM15 14C14.45 14 14 13.55 14 13C14 12.45 14.45 12 15 12C15.55 12 16 12.45 16 13C16 13.55 15.55 14 15 14Z"/>
+  </svg>
+  `,
+  className: '',
+  iconSize: [50, 50],
+  iconAnchor: [25, 25]
 });
 
 var marker;
 
+// ====== ฟังก์ชันโหลด GPS ล่าสุด ======
 async function loadGPS() {
 
   try {
@@ -44,20 +52,18 @@ async function loadGPS() {
     const response = await fetch(url);
     const data = await response.json();
 
-    console.log(data);
-
     let lat = parseFloat(data.field1);
     let lon = parseFloat(data.field2);
 
     if (isNaN(lat) || isNaN(lon)) {
-      alert("GPS ยังไม่มีข้อมูลใน ThingSpeak");
+      console.log("Invalid GPS Data");
       return;
     }
 
-    if (marker) {
-      marker.setLatLng([lat, lon]);
-    } else {
+    if (!marker) {
       marker = L.marker([lat, lon], {icon: trainIcon}).addTo(map);
+    } else {
+      marker.setLatLng([lat, lon]);
     }
 
     map.setView([lat, lon], 15);
@@ -67,7 +73,10 @@ async function loadGPS() {
   }
 }
 
+// โหลดครั้งแรก
 loadGPS();
+
+// อัปเดตทุก 20 วินาที
 setInterval(loadGPS, 20000);
 
 </script>
