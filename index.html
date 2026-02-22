@@ -1,51 +1,122 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Train Tracking System</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<title>SRT Train Tracking</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-    <style>
-        body { margin: 0; }
-        #map { height: 100vh; width: 100%; }
-    </style>
+<style>
+  body { margin:0; }
+  #map { height:100vh; }
+
+  .infoBox {
+    position:absolute;
+    top:15px;
+    left:15px;
+    background:white;
+    padding:12px;
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(0,0,0,0.3);
+    font-family:Arial;
+    z-index:1000;
+  }
+</style>
 </head>
 <body>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<div class="infoBox">
+  <b>🚆 Train Status</b><br>
+  <span id="lat">Latitude: -</span><br>
+  <span id="lon">Longitude: -</span><br>
+  <span id="time">Last Update: -</span>
+</div>
 
 <script>
 
-var map = L.map('map').setView([13.7563, 100.5018], 13);
+// ====== ตั้งค่า ThingSpeak ======
+const channelID = 3195220;
+const readAPI = "KA3TZR7BO86GX3BP";
+
+// ====== สร้างแผนที่ ======
+var map = L.map('map').setView([13.7367, 100.5231], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
+  maxZoom: 19,
 }).addTo(map);
 
-async function loadLocation() {
+// ====== ไอคอนรถไฟ ======
+var trainIcon = L.icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/71/71368.png',
+  iconSize: [40, 40],
+  iconAnchor: [20, 20]
+});
 
-    const response = await fetch("https://api.thingspeak.com/channels/3195220/feeds.json?results=1");
-    const data = await response.json();
+var marker;
+var polyline;
 
-    const lat = parseFloat(data.feeds[0].field1);
-    const lon = parseFloat(data.feeds[0].field2);
+// ====== โหลดข้อมูล GPS ======
+async function loadGPS() {
+
+  const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=20`;
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!data.feeds || data.feeds.length === 0) {
+    console.log("No GPS Data");
+    return;
+  }
+
+  let coords = [];
+
+  data.feeds.forEach(feed => {
+    let lat = parseFloat(feed.field1);
+    let lon = parseFloat(feed.field2);
 
     if (!isNaN(lat) && !isNaN(lon)) {
-
-        map.setView([lat, lon], 16);
-
-        L.marker([lat, lon]).addTo(map)
-            .bindPopup("🚆 Train Location<br>Lat: " + lat + "<br>Lon: " + lon)
-            .openPopup();
+      coords.push([lat, lon]);
     }
+  });
+
+  if (coords.length === 0) {
+    console.log("Invalid GPS");
+    return;
+  }
+
+  // ===== จุดล่าสุด =====
+  let latest = coords[coords.length - 1];
+  let lat = latest[0];
+  let lon = latest[1];
+
+  // ===== ลบของเก่า =====
+  if (marker) map.removeLayer(marker);
+  if (polyline) map.removeLayer(polyline);
+
+  // ===== วาดเส้นย้อนหลัง =====
+  polyline = L.polyline(coords, {color:'blue', weight:4}).addTo(map);
+
+  // ===== วางไอคอนรถไฟ =====
+  marker = L.marker([lat, lon], {icon: trainIcon}).addTo(map);
+
+  // ===== ซูมไปตำแหน่งล่าสุด =====
+  map.setView([lat, lon], 15);
+
+  // ===== อัปเดตกล่องข้อมูล =====
+  document.getElementById("lat").innerHTML = "Latitude: " + lat;
+  document.getElementById("lon").innerHTML = "Longitude: " + lon;
+  document.getElementById("time").innerHTML =
+    "Last Update: " + new Date().toLocaleString();
 }
 
-loadLocation();
-setInterval(loadLocation, 15000);
+// โหลดครั้งแรก
+loadGPS();
+
+// 🔄 รีเฟรชทุก 20 วินาที
+setInterval(loadGPS, 20000);
 
 </script>
 
