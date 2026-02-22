@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <title>SRT Train Live</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
   body { margin:0; }
@@ -18,58 +18,56 @@
 
 <script>
 
-// ====== ตั้งค่า ThingSpeak ======
 const channelID = 3195220;
 const readAPI = "KA3TZR7BO86GX3BP";
 
-// ====== สร้างแผนที่ ======
 var map = L.map('map').setView([13.7367, 100.5231], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
+  maxZoom: 19
 }).addTo(map);
 
-// ====== ไอคอนรถไฟ ======
+// ✅ ใช้ไอคอนจาก GitHub CDN (เสถียรกว่า)
 var trainIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/71/71368.png',
-  iconSize: [45, 45],
-  iconAnchor: [22, 22]
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  iconSize: [35, 55],
+  iconAnchor: [17, 55]
 });
 
 var marker;
 
-// ====== โหลดตำแหน่งล่าสุด ======
 async function loadGPS() {
 
-  const url = `https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readAPI}`;
+  try {
 
-  const response = await fetch(url);
-  const data = await response.json();
+    const url = `https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readAPI}`;
+    const response = await fetch(url);
+    const data = await response.json();
 
-  let lat = parseFloat(data.field1);
-  let lon = parseFloat(data.field2);
+    console.log(data);
 
-  if (isNaN(lat) || isNaN(lon)) {
-    console.log("Invalid GPS Data");
-    return;
+    let lat = parseFloat(data.field1);
+    let lon = parseFloat(data.field2);
+
+    if (isNaN(lat) || isNaN(lon)) {
+      alert("GPS ยังไม่มีข้อมูลใน ThingSpeak");
+      return;
+    }
+
+    if (marker) {
+      marker.setLatLng([lat, lon]);
+    } else {
+      marker = L.marker([lat, lon], {icon: trainIcon}).addTo(map);
+    }
+
+    map.setView([lat, lon], 15);
+
+  } catch (error) {
+    console.log("Error:", error);
   }
-
-  // ลบ marker เก่า
-  if (marker) {
-    map.removeLayer(marker);
-  }
-
-  // สร้าง marker ใหม่
-  marker = L.marker([lat, lon], {icon: trainIcon}).addTo(map);
-
-  // ซูมไปตำแหน่งปัจจุบัน
-  map.setView([lat, lon], 15);
 }
 
-// โหลดครั้งแรก
 loadGPS();
-
-// รีเฟรชทุก 20 วินาที
 setInterval(loadGPS, 20000);
 
 </script>
