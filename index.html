@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>SRT Train Tracking</title>
+<title>SRT Train Live</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -10,30 +10,11 @@
 <style>
   body { margin:0; }
   #map { height:100vh; }
-
-  .infoBox {
-    position:absolute;
-    top:15px;
-    left:15px;
-    background:white;
-    padding:12px;
-    border-radius:8px;
-    box-shadow:0 0 10px rgba(0,0,0,0.3);
-    font-family:Arial;
-    z-index:1000;
-  }
 </style>
 </head>
 <body>
 
 <div id="map"></div>
-
-<div class="infoBox">
-  <b>🚆 Train Status</b><br>
-  <span id="lat">Latitude: -</span><br>
-  <span id="lon">Longitude: -</span><br>
-  <span id="time">Last Update: -</span>
-</div>
 
 <script>
 
@@ -51,71 +32,44 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // ====== ไอคอนรถไฟ ======
 var trainIcon = L.icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/71/71368.png',
-  iconSize: [40, 40],
-  iconAnchor: [20, 20]
+  iconSize: [45, 45],
+  iconAnchor: [22, 22]
 });
 
 var marker;
-var polyline;
 
-// ====== โหลดข้อมูล GPS ======
+// ====== โหลดตำแหน่งล่าสุด ======
 async function loadGPS() {
 
-  const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=20`;
+  const url = `https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readAPI}`;
 
   const response = await fetch(url);
   const data = await response.json();
 
-  if (!data.feeds || data.feeds.length === 0) {
-    console.log("No GPS Data");
+  let lat = parseFloat(data.field1);
+  let lon = parseFloat(data.field2);
+
+  if (isNaN(lat) || isNaN(lon)) {
+    console.log("Invalid GPS Data");
     return;
   }
 
-  let coords = [];
-
-  data.feeds.forEach(feed => {
-    let lat = parseFloat(feed.field1);
-    let lon = parseFloat(feed.field2);
-
-    if (!isNaN(lat) && !isNaN(lon)) {
-      coords.push([lat, lon]);
-    }
-  });
-
-  if (coords.length === 0) {
-    console.log("Invalid GPS");
-    return;
+  // ลบ marker เก่า
+  if (marker) {
+    map.removeLayer(marker);
   }
 
-  // ===== จุดล่าสุด =====
-  let latest = coords[coords.length - 1];
-  let lat = latest[0];
-  let lon = latest[1];
-
-  // ===== ลบของเก่า =====
-  if (marker) map.removeLayer(marker);
-  if (polyline) map.removeLayer(polyline);
-
-  // ===== วาดเส้นย้อนหลัง =====
-  polyline = L.polyline(coords, {color:'blue', weight:4}).addTo(map);
-
-  // ===== วางไอคอนรถไฟ =====
+  // สร้าง marker ใหม่
   marker = L.marker([lat, lon], {icon: trainIcon}).addTo(map);
 
-  // ===== ซูมไปตำแหน่งล่าสุด =====
+  // ซูมไปตำแหน่งปัจจุบัน
   map.setView([lat, lon], 15);
-
-  // ===== อัปเดตกล่องข้อมูล =====
-  document.getElementById("lat").innerHTML = "Latitude: " + lat;
-  document.getElementById("lon").innerHTML = "Longitude: " + lon;
-  document.getElementById("time").innerHTML =
-    "Last Update: " + new Date().toLocaleString();
 }
 
 // โหลดครั้งแรก
 loadGPS();
 
-// 🔄 รีเฟรชทุก 20 วินาที
+// รีเฟรชทุก 20 วินาที
 setInterval(loadGPS, 20000);
 
 </script>
