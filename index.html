@@ -10,26 +10,49 @@
 <style>
   body { margin:0; }
   #map { height:100vh; }
+
+  .infoBox {
+    position:absolute;
+    top:15px;
+    left:15px;
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 0 15px rgba(0,0,0,0.3);
+    font-family:Arial;
+    z-index:1000;
+    width:240px;
+  }
+
+  .title {
+    font-weight:bold;
+    margin-bottom:8px;
+  }
 </style>
 </head>
 <body>
 
 <div id="map"></div>
 
+<div class="infoBox">
+  <div class="title">🚆 Train Status</div>
+  <div id="speed">Speed: - km/h</div>
+  <div id="latlon">Lat/Lon: -</div>
+  <div id="time">Last Update: -</div>
+</div>
+
 <script>
 
-// ====== ตั้งค่า ThingSpeak ======
 const channelID = 3195220;
 const readAPI = "KA3TZR7BO86GX3BP";
 
-// ====== สร้างแผนที่เริ่มต้น (กรุงเทพ) ======
 var map = L.map('map').setView([13.7367, 100.5231], 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
 }).addTo(map);
 
-// ====== ไอคอนรถไฟแบบ SVG ======
+// ===== ไอคอนรถไฟ =====
 var trainIcon = L.divIcon({
   html: `
   <svg width="50" height="50" viewBox="0 0 24 24" fill="red">
@@ -43,40 +66,72 @@ var trainIcon = L.divIcon({
 
 var marker;
 
-// ====== ฟังก์ชันโหลด GPS ล่าสุด ======
-async function loadGPS() {
+// ===== ฟังก์ชันคำนวณระยะทาง (Haversine) =====
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLon = (lon2-lon1) * Math.PI/180;
 
-  try {
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180) *
+    Math.cos(lat2*Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
 
-    const url = `https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readAPI}`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    let lat = parseFloat(data.field1);
-    let lon = parseFloat(data.field2);
-
-    if (isNaN(lat) || isNaN(lon)) {
-      console.log("Invalid GPS Data");
-      return;
-    }
-
-    if (!marker) {
-      marker = L.marker([lat, lon], {icon: trainIcon}).addTo(map);
-    } else {
-      marker.setLatLng([lat, lon]);
-    }
-
-    map.setView([lat, lon], 15);
-
-  } catch (error) {
-    console.log("Error:", error);
-  }
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
-// โหลดครั้งแรก
-loadGPS();
+async function loadGPS() {
 
-// อัปเดตทุก 20 วินาที
+  const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=2`;
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!data.feeds || data.feeds.length < 2) return;
+
+  let f1 = data.feeds[data.feeds.length - 1];
+  let f0 = data.feeds[data.feeds.length - 2];
+
+  let lat1 = parseFloat(f1.field1);
+  let lon1 = parseFloat(f1.field2);
+  let lat0 = parseFloat(f0.field1);
+  let lon0 = parseFloat(f0.field2);
+
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat0) || isNaN(lon0)) return;
+
+  // คำนวณระยะทาง
+  let distance = getDistance(lat0, lon0, lat1, lon1);
+
+  // คำนวณเวลา (ชั่วโมง)
+  let t1 = new Date(f1.created_at);
+  let t0 = new Date(f0.created_at);
+  let timeDiff = (t1 - t0) / (1000 * 60 * 60);
+
+  let speed = 0;
+  if (timeDiff > 0) {
+    speed = distance / timeDiff;
+  }
+
+  if (!marker) {
+    marker = L.marker([lat1, lon1], {icon: trainIcon}).addTo(map);
+  } else {
+    marker.setLatLng([lat1, lon1]);
+  }
+
+  map.setView([lat1, lon1], 15);
+
+  document.getElementById("speed").innerHTML =
+    "Speed: " + speed.toFixed(2) + " km/h";
+
+  document.getElementById("latlon").innerHTML =
+    "Lat/Lon: " + lat1.toFixed(5) + ", " + lon1.toFixed(5);
+
+  document.getElementById("time").innerHTML =
+    "Last Update: " + t1.toLocaleString();
+}
+
+loadGPS();
 setInterval(loadGPS, 20000);
 
 </script>
