@@ -67,7 +67,10 @@ font-size:18px;
 <script>
 
 const channelID = 3195220
-const readAPI = "22QX7RJF53I2L4O9"
+
+// ===== API Keys ใหม่ =====
+const readAPI = "KA3TZR7BO86GX3BP"
+const writeAPI = "MXER88K4E6L0TZ69"
 
 var map = L.map('map').setView([13.7367,100.5231],12)
 
@@ -111,7 +114,7 @@ var marker
 var polyline = L.polyline([],{color:'red'}).addTo(map)
 
 
-// ===== Haversine Distance =====
+// ===== Distance =====
 
 function getDistance(lat1,lon1,lat2,lon2){
 
@@ -131,7 +134,7 @@ return R*c
 }
 
 
-// ===== Bearing Direction =====
+// ===== Bearing =====
 
 function getBearing(lat1,lon1,lat2,lon2){
 
@@ -174,12 +177,7 @@ let lon0=parseFloat(f0.field2)
 if(isNaN(lat1)||isNaN(lon1)||isNaN(lat0)||isNaN(lon0))return
 
 
-// ===== Distance =====
-
 let distance=getDistance(lat0,lon0,lat1,lon1)
-
-
-// ===== Time =====
 
 let t1=new Date(f1.created_at)
 let t0=new Date(f0.created_at)
@@ -192,13 +190,7 @@ if(timeDiff>0){
 speed=distance/timeDiff
 }
 
-
-// ===== Bearing =====
-
 let bearing=getBearing(lat0,lon0,lat1,lon1)
-
-
-// ===== Marker =====
 
 if(!marker){
 marker=L.marker([lat1,lon1],{icon:trainIcon}).addTo(map)
@@ -208,37 +200,21 @@ marker.setLatLng([lat1,lon1])
 
 map.setView([lat1,lon1],15)
 
-
-// ===== หมุนรถไฟ =====
-
 let svg=document.getElementById("trainSVG")
 
 if(svg){
 svg.style.transform=`rotate(${bearing}deg)`
 }
 
-
-// ===== Track Line =====
-
 polyline.addLatLng([lat1,lon1])
 
+document.getElementById("speed").innerHTML="Speed : "+speed.toFixed(2)+" km/h"
 
-// ===== Dashboard =====
+document.getElementById("latlon").innerHTML="Lat/Lon : "+lat1.toFixed(5)+","+lon1.toFixed(5)
 
-document.getElementById("speed").innerHTML=
-"Speed : "+speed.toFixed(2)+" km/h"
+document.getElementById("bearing").innerHTML="Direction : "+bearing.toFixed(1)+"°"
 
-document.getElementById("latlon").innerHTML=
-"Lat/Lon : "+lat1.toFixed(5)+","+lon1.toFixed(5)
-
-document.getElementById("bearing").innerHTML=
-"Direction : "+bearing.toFixed(1)+"°"
-
-document.getElementById("distance").innerHTML=
-"Distance : "+distance.toFixed(3)+" km"
-
-
-// ===== ThingSpeak Fields =====
+document.getElementById("distance").innerHTML="Distance : "+distance.toFixed(3)+" km"
 
 document.getElementById("f1").innerHTML=f1.field1
 document.getElementById("f2").innerHTML=f1.field2
@@ -249,8 +225,7 @@ document.getElementById("f6").innerHTML=f1.field6
 document.getElementById("f7").innerHTML=f1.field7
 document.getElementById("f8").innerHTML=f1.field8
 
-document.getElementById("time").innerHTML=
-"Last Update : "+t1.toLocaleString()
+document.getElementById("time").innerHTML="Last Update : "+t1.toLocaleString()
 
 }
 
