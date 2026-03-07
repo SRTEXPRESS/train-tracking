@@ -1,138 +1,262 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>SRT Train Live Tracking</title>
+<meta charset="utf-8"/>
+<title>SRT Smart Train Tracking</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-  body { margin:0; }
-  #map { height:100vh; }
 
-  .infoBox {
-    position:absolute;
-    top:15px;
-    left:15px;
-    background:white;
-    padding:15px;
-    border-radius:10px;
-    box-shadow:0 0 15px rgba(0,0,0,0.3);
-    font-family:Arial;
-    z-index:1000;
-    width:240px;
-  }
+body{margin:0}
+#map{height:100vh}
 
-  .title {
-    font-weight:bold;
-    margin-bottom:8px;
-  }
+.infoBox{
+position:absolute;
+top:15px;
+left:15px;
+background:white;
+padding:15px;
+border-radius:10px;
+box-shadow:0 0 15px rgba(0,0,0,0.3);
+font-family:Arial;
+z-index:1000;
+width:270px;
+}
+
+.title{
+font-weight:bold;
+margin-bottom:8px;
+font-size:18px;
+}
+
 </style>
 </head>
+
 <body>
 
 <div id="map"></div>
 
 <div class="infoBox">
-  <div class="title">🚆 Train Status</div>
-  <div id="speed">Speed: - km/h</div>
-  <div id="latlon">Lat/Lon: -</div>
-  <div id="time">Last Update: -</div>
+
+<div class="title">🚆 Train Dashboard</div>
+
+<div id="speed">Speed : -</div>
+<div id="latlon">Lat/Lon : -</div>
+<div id="bearing">Direction : -</div>
+<div id="distance">Distance : -</div>
+
+<hr>
+
+<div>Field1 Lat : <span id="f1">-</span></div>
+<div>Field2 Lon : <span id="f2">-</span></div>
+<div>Field3 Speed : <span id="f3">-</span></div>
+<div>Field4 Direction : <span id="f4">-</span></div>
+<div>Field5 AccelX : <span id="f5">-</span></div>
+<div>Field6 AccelY : <span id="f6">-</span></div>
+<div>Field7 AccelZ : <span id="f7">-</span></div>
+<div>Field8 Status : <span id="f8">-</span></div>
+
+<hr>
+
+<div id="time">Last Update : -</div>
+
 </div>
 
 <script>
 
-const channelID = 3195220;
-const readAPI = "KA3TZR7BO86GX3BP";
+const channelID = 3195220
+const readAPI = "22QX7RJF53I2L4O9"
 
-var map = L.map('map').setView([13.7367, 100.5231], 12);
+var map = L.map('map').setView([13.7367,100.5231],12)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:19
+}).addTo(map)
+
+
+// ===== สถานีรถไฟ =====
+
+var stations = [
+
+["Bang Sue",13.803,100.530],
+["Don Mueang",13.912,100.607],
+["Rangsit",14.043,100.615],
+["Ayutthaya",14.353,100.577]
+
+]
+
+stations.forEach(s=>{
+L.marker([s[1],s[2]]).addTo(map)
+.bindPopup("🚉 "+s[0])
+})
+
 
 // ===== ไอคอนรถไฟ =====
+
 var trainIcon = L.divIcon({
-  html: `
-  <svg width="50" height="50" viewBox="0 0 24 24" fill="red">
-    <path d="M12 2C8 2 6 3 6 6V13C6 15 7 16 8 17L6 19V20H18V19L16 17C17 16 18 15 18 13V6C18 3 16 2 12 2ZM8 6H16V10H8V6ZM9 14C8.45 14 8 13.55 8 13C8 12.45 8.45 12 9 12C9.55 12 10 12.45 10 13C10 13.55 9.55 14 9 14ZM15 14C14.45 14 14 13.55 14 13C14 12.45 14.45 12 15 12C15.55 12 16 12.45 16 13C16 13.55 15.55 14 15 14Z"/>
-  </svg>
-  `,
-  className: '',
-  iconSize: [50, 50],
-  iconAnchor: [25, 25]
-});
+html:`<svg id="trainSVG" width="50" height="50" viewBox="0 0 24 24" fill="red">
+<path d="M12 2C8 2 6 3 6 6V13C6 15 7 16 8 17L6 19V20H18V19L16 17C17 16 18 15 18 13V6C18 3 16 2 12 2Z"/>
+</svg>`,
+className:'',
+iconSize:[50,50],
+iconAnchor:[25,25]
+})
 
-var marker;
+var marker
 
-// ===== ฟังก์ชันคำนวณระยะทาง (Haversine) =====
-function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLon = (lon2-lon1) * Math.PI/180;
+// ===== Track Line =====
 
-  const a =
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1*Math.PI/180) *
-    Math.cos(lat2*Math.PI/180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
+var polyline = L.polyline([],{color:'red'}).addTo(map)
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+
+// ===== Haversine Distance =====
+
+function getDistance(lat1,lon1,lat2,lon2){
+
+const R=6371
+const dLat=(lat2-lat1)*Math.PI/180
+const dLon=(lon2-lon1)*Math.PI/180
+
+const a=
+Math.sin(dLat/2)**2+
+Math.cos(lat1*Math.PI/180)*
+Math.cos(lat2*Math.PI/180)*
+Math.sin(dLon/2)**2
+
+const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
+
+return R*c
 }
 
-async function loadGPS() {
 
-  const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=2`;
-  const response = await fetch(url);
-  const data = await response.json();
+// ===== Bearing Direction =====
 
-  if (!data.feeds || data.feeds.length < 2) return;
+function getBearing(lat1,lon1,lat2,lon2){
 
-  let f1 = data.feeds[data.feeds.length - 1];
-  let f0 = data.feeds[data.feeds.length - 2];
+let dLon=(lon2-lon1)*Math.PI/180
 
-  let lat1 = parseFloat(f1.field1);
-  let lon1 = parseFloat(f1.field2);
-  let lat0 = parseFloat(f0.field1);
-  let lon0 = parseFloat(f0.field2);
+lat1=lat1*Math.PI/180
+lat2=lat2*Math.PI/180
 
-  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat0) || isNaN(lon0)) return;
+let y=Math.sin(dLon)*Math.cos(lat2)
+let x=Math.cos(lat1)*Math.sin(lat2)-
+Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon)
 
-  // คำนวณระยะทาง
-  let distance = getDistance(lat0, lon0, lat1, lon1);
+let brng=Math.atan2(y,x)
 
-  // คำนวณเวลา (ชั่วโมง)
-  let t1 = new Date(f1.created_at);
-  let t0 = new Date(f0.created_at);
-  let timeDiff = (t1 - t0) / (1000 * 60 * 60);
+brng=brng*180/Math.PI
+brng=(brng+360)%360
 
-  let speed = 0;
-  if (timeDiff > 0) {
-    speed = distance / timeDiff;
-  }
-
-  if (!marker) {
-    marker = L.marker([lat1, lon1], {icon: trainIcon}).addTo(map);
-  } else {
-    marker.setLatLng([lat1, lon1]);
-  }
-
-  map.setView([lat1, lon1], 15);
-
-  document.getElementById("speed").innerHTML =
-    "Speed: " + speed.toFixed(2) + " km/h";
-
-  document.getElementById("latlon").innerHTML =
-    "Lat/Lon: " + lat1.toFixed(5) + ", " + lon1.toFixed(5);
-
-  document.getElementById("time").innerHTML =
-    "Last Update: " + t1.toLocaleString();
+return brng
 }
 
-loadGPS();
-setInterval(loadGPS, 20000);
+
+async function loadGPS(){
+
+const url=`https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=2`
+
+const response=await fetch(url)
+const data=await response.json()
+
+if(!data.feeds||data.feeds.length<2)return
+
+let f1=data.feeds[data.feeds.length-1]
+let f0=data.feeds[data.feeds.length-2]
+
+let lat1=parseFloat(f1.field1)
+let lon1=parseFloat(f1.field2)
+
+let lat0=parseFloat(f0.field1)
+let lon0=parseFloat(f0.field2)
+
+if(isNaN(lat1)||isNaN(lon1)||isNaN(lat0)||isNaN(lon0))return
+
+
+// ===== Distance =====
+
+let distance=getDistance(lat0,lon0,lat1,lon1)
+
+
+// ===== Time =====
+
+let t1=new Date(f1.created_at)
+let t0=new Date(f0.created_at)
+
+let timeDiff=(t1-t0)/(1000*60*60)
+
+let speed=0
+
+if(timeDiff>0){
+speed=distance/timeDiff
+}
+
+
+// ===== Bearing =====
+
+let bearing=getBearing(lat0,lon0,lat1,lon1)
+
+
+// ===== Marker =====
+
+if(!marker){
+marker=L.marker([lat1,lon1],{icon:trainIcon}).addTo(map)
+}else{
+marker.setLatLng([lat1,lon1])
+}
+
+map.setView([lat1,lon1],15)
+
+
+// ===== หมุนรถไฟ =====
+
+let svg=document.getElementById("trainSVG")
+
+if(svg){
+svg.style.transform=`rotate(${bearing}deg)`
+}
+
+
+// ===== Track Line =====
+
+polyline.addLatLng([lat1,lon1])
+
+
+// ===== Dashboard =====
+
+document.getElementById("speed").innerHTML=
+"Speed : "+speed.toFixed(2)+" km/h"
+
+document.getElementById("latlon").innerHTML=
+"Lat/Lon : "+lat1.toFixed(5)+","+lon1.toFixed(5)
+
+document.getElementById("bearing").innerHTML=
+"Direction : "+bearing.toFixed(1)+"°"
+
+document.getElementById("distance").innerHTML=
+"Distance : "+distance.toFixed(3)+" km"
+
+
+// ===== ThingSpeak Fields =====
+
+document.getElementById("f1").innerHTML=f1.field1
+document.getElementById("f2").innerHTML=f1.field2
+document.getElementById("f3").innerHTML=f1.field3
+document.getElementById("f4").innerHTML=f1.field4
+document.getElementById("f5").innerHTML=f1.field5
+document.getElementById("f6").innerHTML=f1.field6
+document.getElementById("f7").innerHTML=f1.field7
+document.getElementById("f8").innerHTML=f1.field8
+
+document.getElementById("time").innerHTML=
+"Last Update : "+t1.toLocaleString()
+
+}
+
+loadGPS()
+
+setInterval(loadGPS,15000)
 
 </script>
 
