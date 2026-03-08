@@ -8,7 +8,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-
 body{margin:0}
 #map{height:100vh}
 
@@ -30,7 +29,6 @@ font-weight:bold;
 margin-bottom:8px;
 font-size:18px;
 }
-
 </style>
 </head>
 
@@ -66,11 +64,10 @@ font-size:18px;
 
 <script>
 
-const channelID = 3195220
-
-// ===== API Keys ใหม่ =====
-const readAPI = "KA3TZR7BO86GX3BP"
-const writeAPI = "MXER88K4E6L0TZ69"
+// ===== CONFIG ใหม่ =====
+const channelID = 3290459
+const readAPI = "F2K7QK3HPA5F5Z7J"
+const writeAPI = "33W4XMVDBIUVBVO0"
 
 var map = L.map('map').setView([13.7367,100.5231],12)
 
@@ -78,83 +75,46 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 maxZoom:19
 }).addTo(map)
 
-
-// ===== สถานีรถไฟ =====
-
-var stations = [
-
-["Bang Sue",13.803,100.530],
-["Don Mueang",13.912,100.607],
-["Rangsit",14.043,100.615],
-["Ayutthaya",14.353,100.577]
-
-]
-
-stations.forEach(s=>{
-L.marker([s[1],s[2]]).addTo(map)
-.bindPopup("🚉 "+s[0])
-})
-
-
-// ===== ไอคอนรถไฟ =====
-
+// ===== ไอคอนสามเหลี่ยมชี้ทิศ =====
 var trainIcon = L.divIcon({
-html:`<svg id="trainSVG" width="50" height="50" viewBox="0 0 24 24" fill="red">
-<path d="M12 2C8 2 6 3 6 6V13C6 15 7 16 8 17L6 19V20H18V19L16 17C17 16 18 15 18 13V6C18 3 16 2 12 2Z"/>
-</svg>`,
+html:`
+<svg id="trainSVG" width="40" height="40" viewBox="0 0 100 100">
+<polygon points="50,10 90,90 50,75 10,90" fill="red"/>
+</svg>
+`,
 className:'',
-iconSize:[50,50],
-iconAnchor:[25,25]
+iconSize:[40,40],
+iconAnchor:[20,20]
 })
 
 var marker
-
-// ===== Track Line =====
-
 var polyline = L.polyline([],{color:'red'}).addTo(map)
 
-
 // ===== Distance =====
-
 function getDistance(lat1,lon1,lat2,lon2){
-
 const R=6371
 const dLat=(lat2-lat1)*Math.PI/180
 const dLon=(lon2-lon1)*Math.PI/180
-
-const a=
-Math.sin(dLat/2)**2+
+const a=Math.sin(dLat/2)**2+
 Math.cos(lat1*Math.PI/180)*
 Math.cos(lat2*Math.PI/180)*
 Math.sin(dLon/2)**2
-
 const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
-
 return R*c
 }
 
-
 // ===== Bearing =====
-
 function getBearing(lat1,lon1,lat2,lon2){
-
 let dLon=(lon2-lon1)*Math.PI/180
-
-lat1=lat1*Math.PI/180
-lat2=lat2*Math.PI/180
-
+lat1*=Math.PI/180
+lat2*=Math.PI/180
 let y=Math.sin(dLon)*Math.cos(lat2)
 let x=Math.cos(lat1)*Math.sin(lat2)-
 Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon)
-
 let brng=Math.atan2(y,x)
-
 brng=brng*180/Math.PI
-brng=(brng+360)%360
-
-return brng
+return (brng+360)%360
 }
-
 
 async function loadGPS(){
 
@@ -170,12 +130,10 @@ let f0=data.feeds[data.feeds.length-2]
 
 let lat1=parseFloat(f1.field1)
 let lon1=parseFloat(f1.field2)
-
 let lat0=parseFloat(f0.field1)
 let lon0=parseFloat(f0.field2)
 
 if(isNaN(lat1)||isNaN(lon1)||isNaN(lat0)||isNaN(lon0))return
-
 
 let distance=getDistance(lat0,lon0,lat1,lon1)
 
@@ -183,9 +141,7 @@ let t1=new Date(f1.created_at)
 let t0=new Date(f0.created_at)
 
 let timeDiff=(t1-t0)/(1000*60*60)
-
 let speed=0
-
 if(timeDiff>0){
 speed=distance/timeDiff
 }
@@ -201,7 +157,6 @@ marker.setLatLng([lat1,lon1])
 map.setView([lat1,lon1],15)
 
 let svg=document.getElementById("trainSVG")
-
 if(svg){
 svg.style.transform=`rotate(${bearing}deg)`
 }
@@ -209,11 +164,8 @@ svg.style.transform=`rotate(${bearing}deg)`
 polyline.addLatLng([lat1,lon1])
 
 document.getElementById("speed").innerHTML="Speed : "+speed.toFixed(2)+" km/h"
-
 document.getElementById("latlon").innerHTML="Lat/Lon : "+lat1.toFixed(5)+","+lon1.toFixed(5)
-
 document.getElementById("bearing").innerHTML="Direction : "+bearing.toFixed(1)+"°"
-
 document.getElementById("distance").innerHTML="Distance : "+distance.toFixed(3)+" km"
 
 document.getElementById("f1").innerHTML=f1.field1
@@ -226,11 +178,9 @@ document.getElementById("f7").innerHTML=f1.field7
 document.getElementById("f8").innerHTML=f1.field8
 
 document.getElementById("time").innerHTML="Last Update : "+t1.toLocaleString()
-
 }
 
 loadGPS()
-
 setInterval(loadGPS,15000)
 
 </script>
