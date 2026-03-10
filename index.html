@@ -74,7 +74,23 @@ var map = L.map('map').setView([13.7367,100.5231],12)
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 maxZoom:19
 }).addTo(map)
+// ===== Station Icon =====
+var stationIcon = L.icon({
+iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+iconSize: [30,30],
+iconAnchor: [15,30],
+popupAnchor: [0,-30]
+})
 
+// ===== สถานีรถไฟสามเสน =====
+var samsen = L.marker([13.7794891,100.5299030],{icon:stationIcon})
+.addTo(map)
+.bindPopup("<b>สถานีรถไฟสามเสน</b><br>พิกัด: 13.7794891,100.5299030")
+
+// ===== สถานีรถไฟบางซื่อ =====
+var bangsue = L.marker([13.8040482,100.5400511],{icon:stationIcon})
+.addTo(map)
+.bindPopup("<b>สถานีรถไฟบางซื่อ</b><br>พิกัด: 13.8040482,100.5400511")
 // ===== ไอคอนสามเหลี่ยมชี้ทิศ =====
 var trainIcon = L.divIcon({
 html:`
