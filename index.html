@@ -81,7 +81,10 @@ iconSize: [30,30],
 iconAnchor: [15,30],
 popupAnchor: [0,-30]
 })
-
+// ===== สถานีรถไฟหัวลำโพง (ต้นทาง) =====
+var hualamphong = L.marker([13.7394789,100.5163759],{icon:stationIcon})
+.addTo(map)
+.bindPopup("<b>สถานีรถไฟหัวลำโพง (ต้นทาง)</b><br>พิกัด: 13.7394789,100.5163759")
 // ===== สถานีรถไฟสามเสน =====
 var samsen = L.marker([13.7794891,100.5299030],{icon:stationIcon})
 .addTo(map)
