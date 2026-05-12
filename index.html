@@ -1,15 +1,25 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 <meta charset="utf-8"/>
 <title>SRT Smart Train Tracking</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-body{margin:0}
-#map{height:100vh}
+
+body{
+margin:0;
+font-family:Arial;
+}
+
+#map{
+height:100vh;
+}
 
 .infoBox{
 position:absolute;
@@ -17,18 +27,26 @@ top:15px;
 left:15px;
 background:white;
 padding:15px;
-border-radius:10px;
+border-radius:12px;
 box-shadow:0 0 15px rgba(0,0,0,0.3);
-font-family:Arial;
 z-index:1000;
-width:270px;
+width:280px;
 }
 
 .title{
+font-size:20px;
 font-weight:bold;
-margin-bottom:8px;
-font-size:18px;
+margin-bottom:10px;
 }
+
+.data{
+margin-top:5px;
+}
+
+hr{
+margin:10px 0;
+}
+
 </style>
 </head>
 
@@ -40,21 +58,21 @@ font-size:18px;
 
 <div class="title">🚆 Train Dashboard</div>
 
-<div id="speed">Speed : -</div>
-<div id="latlon">Lat/Lon : -</div>
-<div id="bearing">Direction : -</div>
-<div id="distance">Distance : -</div>
+<div id="speed" class="data">Speed : -</div>
+<div id="latlon" class="data">Lat/Lon : -</div>
+<div id="bearing" class="data">Direction : -</div>
+<div id="distance" class="data">Distance : -</div>
 
 <hr>
 
-<div>Field1 Lat : <span id="f1">-</span></div>
-<div>Field2 Lon : <span id="f2">-</span></div>
-<div>Field3 Speed : <span id="f3">-</span></div>
-<div>Field4 Direction : <span id="f4">-</span></div>
-<div>Field5 AccelX : <span id="f5">-</span></div>
-<div>Field6 AccelY : <span id="f6">-</span></div>
-<div>Field7 AccelZ : <span id="f7">-</span></div>
-<div>Field8 Status : <span id="f8">-</span></div>
+<div id="f1" class="data">Latitude : -</div>
+<div id="f2" class="data">Longitude : -</div>
+<div id="f3" class="data">Speed : -</div>
+<div id="f4" class="data">AccelX : -</div>
+<div id="f5" class="data">AccelY : -</div>
+<div id="f6" class="data">AccelZ : -</div>
+<div id="f7" class="data">GyroX : -</div>
+<div id="f8" class="data">GyroY : -</div>
 
 <hr>
 
@@ -64,142 +82,351 @@ font-size:18px;
 
 <script>
 
-// ===== CONFIG ใหม่ =====
+// =====================================
+// CONFIG
+// =====================================
 const channelID = 3290459
 const readAPI = "F2K7QK3HPA5F5Z7J"
-const writeAPI = "33W4XMVDBIUVBVO0"
 
-var map = L.map('map').setView([13.7367,100.5231],12)
+// =====================================
+// MAP
+// =====================================
+var map = L.map('map').setView(
+    [13.7367,100.5231],
+    12
+)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+    maxZoom:19
 }).addTo(map)
-// ===== Station Icon =====
-var stationIcon = L.icon({
-iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-iconSize: [30,30],
-iconAnchor: [15,30],
-popupAnchor: [0,-30]
-})
-// ===== สถานีรถไฟหัวลำโพง (ต้นทาง) =====
-var hualamphong = L.marker([13.7394789,100.5163759],{icon:stationIcon})
-.addTo(map)
-.bindPopup("<b>สถานีรถไฟหัวลำโพง (ต้นทาง)</b><br>พิกัด: 13.7394789,100.5163759")
-// ===== สถานีรถไฟสามเสน =====
-var samsen = L.marker([13.7794891,100.5299030],{icon:stationIcon})
-.addTo(map)
-.bindPopup("<b>สถานีรถไฟสามเสน</b><br>พิกัด: 13.7794891,100.5299030")
 
-// ===== สถานีรถไฟบางซื่อ =====
-var bangsue = L.marker([13.8040482,100.5400511],{icon:stationIcon})
+// =====================================
+// Station Icon
+// =====================================
+var stationIcon = L.icon({
+
+    iconUrl:
+    "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+
+    iconSize:[30,30],
+    iconAnchor:[15,30],
+    popupAnchor:[0,-30]
+})
+
+// =====================================
+// Stations
+// =====================================
+L.marker(
+    [13.7394789,100.5163759],
+    {icon:stationIcon}
+)
 .addTo(map)
-.bindPopup("<b>สถานีรถไฟบางซื่อ</b><br>พิกัด: 13.8040482,100.5400511")
-// ===== ไอคอนสามเหลี่ยมชี้ทิศ =====
+.bindPopup("สถานีหัวลำโพง")
+
+L.marker(
+    [13.7794891,100.5299030],
+    {icon:stationIcon}
+)
+.addTo(map)
+.bindPopup("สถานีสามเสน")
+
+L.marker(
+    [13.8040482,100.5400511],
+    {icon:stationIcon}
+)
+.addTo(map)
+.bindPopup("สถานีบางซื่อ")
+
+// =====================================
+// Train Icon
+// =====================================
 var trainIcon = L.divIcon({
+
 html:`
-<svg id="trainSVG" width="40" height="40" viewBox="0 0 100 100">
-<polygon points="50,10 90,90 50,75 10,90" fill="red"/>
+<svg id="trainSVG"
+width="40"
+height="40"
+viewBox="0 0 100 100">
+
+<polygon
+points="50,10 90,90 50,75 10,90"
+fill="red"/>
+
 </svg>
 `,
+
 className:'',
 iconSize:[40,40],
 iconAnchor:[20,20]
+
 })
 
-var marker
-var polyline = L.polyline([],{color:'red'}).addTo(map)
+// =====================================
+// Marker
+// =====================================
+var marker = null
 
-// ===== Distance =====
+// =====================================
+// Train Path
+// =====================================
+var polyline = L.polyline(
+    [],
+    {color:'red'}
+).addTo(map)
+
+// =====================================
+// Distance Function
+// =====================================
 function getDistance(lat1,lon1,lat2,lon2){
-const R=6371
-const dLat=(lat2-lat1)*Math.PI/180
-const dLon=(lon2-lon1)*Math.PI/180
-const a=Math.sin(dLat/2)**2+
-Math.cos(lat1*Math.PI/180)*
-Math.cos(lat2*Math.PI/180)*
+
+const R = 6371
+
+const dLat = (lat2-lat1)*Math.PI/180
+const dLon = (lon2-lon1)*Math.PI/180
+
+const a =
+Math.sin(dLat/2)**2 +
+Math.cos(lat1*Math.PI/180) *
+Math.cos(lat2*Math.PI/180) *
 Math.sin(dLon/2)**2
-const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
+
+const c = 2*Math.atan2(
+Math.sqrt(a),
+Math.sqrt(1-a)
+)
+
 return R*c
+
 }
 
-// ===== Bearing =====
+// =====================================
+// Bearing Function
+// =====================================
 function getBearing(lat1,lon1,lat2,lon2){
-let dLon=(lon2-lon1)*Math.PI/180
-lat1*=Math.PI/180
-lat2*=Math.PI/180
-let y=Math.sin(dLon)*Math.cos(lat2)
-let x=Math.cos(lat1)*Math.sin(lat2)-
+
+let dLon = (lon2-lon1)*Math.PI/180
+
+lat1 *= Math.PI/180
+lat2 *= Math.PI/180
+
+let y = Math.sin(dLon) * Math.cos(lat2)
+
+let x =
+Math.cos(lat1)*Math.sin(lat2) -
 Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon)
-let brng=Math.atan2(y,x)
-brng=brng*180/Math.PI
-return (brng+360)%360
+
+let brng = Math.atan2(y,x)
+
+brng = brng * 180 / Math.PI
+
+return (brng + 360) % 360
+
 }
 
+// =====================================
+// Load GPS
+// =====================================
 async function loadGPS(){
 
-const url=`https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=2`
+try{
 
-const response=await fetch(url)
-const data=await response.json()
+const url =
+`https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=2`
 
-if(!data.feeds||data.feeds.length<2)return
+const response = await fetch(url)
 
-let f1=data.feeds[data.feeds.length-1]
-let f0=data.feeds[data.feeds.length-2]
+const data = await response.json()
 
-let lat1=parseFloat(f1.field1)
-let lon1=parseFloat(f1.field2)
-let lat0=parseFloat(f0.field1)
-let lon0=parseFloat(f0.field2)
+console.log(data)
 
-if(isNaN(lat1)||isNaN(lon1)||isNaN(lat0)||isNaN(lon0))return
+// =====================================
+// Check feeds
+// =====================================
+if(!data.feeds || data.feeds.length < 1){
 
-let distance=getDistance(lat0,lon0,lat1,lon1)
+console.log("No Feed Data")
 
-let t1=new Date(f1.created_at)
-let t0=new Date(f0.created_at)
+return
 
-let timeDiff=(t1-t0)/(1000*60*60)
-let speed=0
-if(timeDiff>0){
-speed=distance/timeDiff
 }
 
-let bearing=getBearing(lat0,lon0,lat1,lon1)
+// =====================================
+// Latest Feed
+// =====================================
+let f1 = data.feeds[data.feeds.length-1]
 
+// Previous Feed
+let f0 = data.feeds.length > 1
+? data.feeds[data.feeds.length-2]
+: f1
+
+// =====================================
+// Read GPS
+// =====================================
+let lat1 = Number(f1.field1)
+let lon1 = Number(f1.field2)
+
+let lat0 = Number(f0.field1)
+let lon0 = Number(f0.field2)
+
+console.log("LAT =", lat1)
+console.log("LON =", lon1)
+
+// =====================================
+// Validate GPS
+// =====================================
+if(
+isNaN(lat1) ||
+isNaN(lon1)
+){
+
+console.log("Invalid GPS")
+
+return
+
+}
+
+// =====================================
+// Distance
+// =====================================
+let distance = getDistance(
+lat0,
+lon0,
+lat1,
+lon1
+)
+
+// =====================================
+// Time
+// =====================================
+let t1 = new Date(f1.created_at)
+let t0 = new Date(f0.created_at)
+
+let timeDiff =
+(t1 - t0)/(1000*60*60)
+
+// =====================================
+// Speed
+// =====================================
+let speed = Number(f1.field3)
+
+if(isNaN(speed)){
+speed = 0
+}
+
+// =====================================
+// Bearing
+// =====================================
+let bearing = getBearing(
+lat0,
+lon0,
+lat1,
+lon1
+)
+
+// =====================================
+// Create Marker
+// =====================================
 if(!marker){
-marker=L.marker([lat1,lon1],{icon:trainIcon}).addTo(map)
-}else{
-marker.setLatLng([lat1,lon1])
-}
+
+marker = L.marker(
+    [lat1,lon1],
+    {icon:trainIcon}
+).addTo(map)
 
 map.setView([lat1,lon1],15)
 
-let svg=document.getElementById("trainSVG")
-if(svg){
-svg.style.transform=`rotate(${bearing}deg)`
+}else{
+
+marker.setLatLng([lat1,lon1])
+
 }
 
+// =====================================
+// Rotate Train
+// =====================================
+let svg =
+document.getElementById("trainSVG")
+
+if(svg){
+
+svg.style.transform =
+`rotate(${bearing}deg)`
+
+}
+
+// =====================================
+// Draw Path
+// =====================================
 polyline.addLatLng([lat1,lon1])
 
-document.getElementById("speed").innerHTML="Speed : "+speed.toFixed(2)+" km/h"
-document.getElementById("latlon").innerHTML="Lat/Lon : "+lat1.toFixed(5)+","+lon1.toFixed(5)
-document.getElementById("bearing").innerHTML="Direction : "+bearing.toFixed(1)+"°"
-document.getElementById("distance").innerHTML="Distance : "+distance.toFixed(3)+" km"
+// =====================================
+// Dashboard Update
+// =====================================
+document.getElementById("speed").innerHTML =
+"Speed : " +
+speed.toFixed(2) +
+" km/h"
 
-document.getElementById("f1").innerHTML=f1.field1
-document.getElementById("f2").innerHTML=f1.field2
-document.getElementById("f3").innerHTML=f1.field3
-document.getElementById("f4").innerHTML = "AccelX : " + f1.field4
-document.getElementById("f5").innerHTML = "AccelY : " + f1.field5
-document.getElementById("f6").innerHTML = "AccelZ : " + f1.field6
-document.getElementById("f7").innerHTML = "GyroX : " + f1.field7
-document.getElementById("f8").innerHTML = "GyroY : " + f1.field8
+document.getElementById("latlon").innerHTML =
+"Lat/Lon : " +
+lat1.toFixed(6) +
+", " +
+lon1.toFixed(6)
 
-document.getElementById("time").innerHTML="Last Update : "+t1.toLocaleString()
+document.getElementById("bearing").innerHTML =
+"Direction : " +
+bearing.toFixed(1) +
+"°"
+
+document.getElementById("distance").innerHTML =
+"Distance : " +
+distance.toFixed(3) +
+" km"
+
+document.getElementById("f1").innerHTML =
+"Latitude : " + f1.field1
+
+document.getElementById("f2").innerHTML =
+"Longitude : " + f1.field2
+
+document.getElementById("f3").innerHTML =
+"Speed : " + f1.field3
+
+document.getElementById("f4").innerHTML =
+"AccelX : " + f1.field4
+
+document.getElementById("f5").innerHTML =
+"AccelY : " + f1.field5
+
+document.getElementById("f6").innerHTML =
+"AccelZ : " + f1.field6
+
+document.getElementById("f7").innerHTML =
+"GyroX : " + f1.field7
+
+document.getElementById("f8").innerHTML =
+"GyroY : " + f1.field8
+
+document.getElementById("time").innerHTML =
+"Last Update : " +
+t1.toLocaleString()
+
+}catch(err){
+
+console.log("ERROR =", err)
+
 }
 
+}
+
+// =====================================
+// Start
+// =====================================
 loadGPS()
+
 setInterval(loadGPS,15000)
 
 </script>
